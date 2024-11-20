@@ -187,13 +187,19 @@ class GameReviewSummarizer:
             print("No results found to rephrase.")
             return None, None
 
-        top_result = results[0]
-        context = [top_result] + [result for result in results[1:] if result['title'] == top_result['title']][:2] 
+        excluded_text = "By clicking 'enter', you agree to GameSpot's Terms of Use and Privacy Policy"
 
+        # Filter out excluded_text from the results
+        filtered_results = [result for result in results if result['original_text'] != excluded_text]
+
+        # Build context with the filtered results
+        context = [result for result in filtered_results[1:]]
+
+        # Extract summaries to rephrase
         summaries_to_rephrase = [entry['summary'] for entry in context]
 
         user_message = (
-            f"Title: {top_result['title']}\nQuery: {query}\n"
+            f"Title: {filtered_results[0]['title']}\nQuery: {query}\n"
             "Please rephrase and improve the grammar of the following summaries and expand prompt options to improve sentence flow and grammatical accuracy. Provide only the rephrased summaries as output, without any additional context or introductory phrases:\n"
             + "\n".join(summaries_to_rephrase)
         )
@@ -311,8 +317,26 @@ if __name__ == "__main__":
     # summarizer.run("https://www.gamespot.com/reviews/pennys-big-breakaway-review-if-it-aint-broke/1900-6418189/")
     # summarizer.run("https://www.gamespot.com/reviews/final-fantasy-7-rebirth-review-destinys-child/1900-6418187/")
 
-    query = "I want to know about Super Mario Party"
-    results = summarizer.search(query)
+    while True:
+        # Clear the terminal
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-    rephrased_text, context = summarizer.rephrase_summaries(query, results)
-    summarizer.save_output(query, context, rephrased_text, "data/output.json")
+        # Get user query
+        query = input("Enter your query (or type 'exit' to quit): ")
+        if query.lower() == 'exit':
+            print("Exiting... Goodbye!")
+            break
+
+        # Fetch search results
+        results = summarizer.search(query)
+
+        # Rephrase summaries
+        rephrased_text, context = summarizer.rephrase_summaries(query, results)
+
+        # Save output to JSON
+        summarizer.save_output(query, context, rephrased_text, "data/output.json")
+
+        # Display the rephrased text and context
+        print("\nRephrased Text:")
+        print(rephrased_text)
+        input("\nPress Enter to continue...")
